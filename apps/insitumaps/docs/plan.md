@@ -80,10 +80,31 @@ interface CellLayer {
 ```
 
 Raster/table "source descriptors" are the TissUUmaps data-source objects (`{type: "ome-zarr",
-source}` etc.), so `viewer/` can hand them to the existing providers. A SpatialData
-implementation would return the same descriptors for `images/<name>`, `labels/<name>`,
-`tables/<name>` and `points/<name>` of a SpatialData zarr, plus the InSituPy semantics it stores
-(which table belongs to which labels, which layer is main) from the SpatialData attrs/`uns`.
+source}` etc.), so `viewer/` can hand them to the existing providers. The interface is in
+`src/insitupy/types.ts`; `src/insitupy/v2/` implements it for the current layout, and
+`src/insitupy/index.ts` is the only place that picks an implementation (`openSource`).
+
+How a SpatialData-backed implementation plugs in (`src/insitupy/spatialdata/`, not written):
+
+- `openSource` would detect a SpatialData zarr (`zarr.json` or `.zattrs` with
+  `spatialdata_attrs`) next to the v2 detection and return the same `OpenedSource`.
+- `InSituProject.images` come from `images/<name>` (OME-NGFF groups; the same `ome-zarr`
+  data source type, as the TissUUmaps provider reads NGFF 0.4 and 0.5), `pixelSize` from the
+  multiscale scale, `rgb` from the `c` axis.
+- `cellLayers` come from the InSituPy attrs that the SpatialData writer will store (which
+  `labels/<name>` and `tables/<name>` belong together, which layer is main); without them,
+  one layer per table with `spatialdata_attrs.region` pointing at a labels element.
+- `CellTable` wraps `tables/<name>` (AnnData zarr, v2 or v3): `genes` from `var`,
+  `expressionSources` from `X` and `layers/*` (CSC required for per-gene reads, as today),
+  `obsColumns` from `obs`, the table data source `{type: "zarr", source, idColumn:
+"obs/<instance_key>"}` with the instance key from `spatialdata_attrs`.
+- `MaskEntry` wraps `labels/<name>` with a `direct` mapping when the instance key equals the
+  raster label, or a `mapped` one built like `buildLabelMapping`; `readLabel` reads the
+  level-0 array through the same zarrita store.
+- `TranscriptsEntry` points at `points/<name>` (Parquet) and at the same InSituMaps index
+  folder if present; `GeometryEntry` at `shapes/<name>` with a `parquet` shapes data source
+  (TissUUmaps reads GeoParquet) instead of GeoJSON.
+- Nothing in `viewer/`, `state/` or `ui/` changes: they only see the interface.
 
 ## 5. Transcript strategy
 

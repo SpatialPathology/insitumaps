@@ -87,12 +87,14 @@ Add `?source=<folder url>` to its URL, or host a redirect that fills it in.
 ```bash
 pnpm --filter insitumaps test           # vitest: data layer, transcript index, state
 pnpm --filter insitumaps smoke          # headless Chromium end-to-end run on the fixture
+pnpm --filter insitumaps smoke:local    # the same through the local-folder code path
 pnpm typecheck && pnpm lint             # whole monorepo
 ```
 
-The smoke test needs the dev and data servers running (`dev:fixture`) and a Chromium with
-WebGL 2; it finds the Playwright Chromium or `INSITUMAPS_CHROME`. Screenshots land in
-`test-data/smoke/`.
+The smoke tests need the dev and data servers running (`dev:fixture`) and a Chromium with
+WebGL 2; they find the Playwright Chromium or `INSITUMAPS_CHROME`. Screenshots land in
+`test-data/smoke/`. `smoke:local` copies one sample into the browser's private file system
+and opens it as a directory, which exercises the same code as a folder picked by the user.
 
 ### Prepare your own data
 

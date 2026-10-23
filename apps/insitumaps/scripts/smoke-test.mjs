@@ -60,6 +60,22 @@ try {
   };
   const viewerStats = () => page.regionStats(500, 100, 600, 500);
 
+  console.log("0. a wrong address shows a message");
+  await page.goto(
+    `${appUrl}?source=${encodeURIComponent(dataUrl + "nothing/")}`,
+  );
+  await page.waitFor(
+    `window.insitumaps && window.insitumaps.getState().openStatus.phase === "error"`,
+    { timeout: 60000, label: "the error" },
+  );
+  const errorShown = await page.evaluate(
+    `document.body.innerText.includes("Could not open the data") && document.body.innerText.includes("neither")`,
+  );
+  check(
+    errorShown,
+    "the start screen explains that the folder is neither a project nor an experiment",
+  );
+
   console.log("1. open the experiment");
   await page.goto(`${appUrl}?source=${encodeURIComponent(dataUrl)}`);
   await page.waitFor(

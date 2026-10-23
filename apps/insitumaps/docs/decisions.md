@@ -129,3 +129,20 @@ Reasoning: in production mode the workspace packages resolve to their `dist`, as
 Decision: `scripts/add_demo_annotations.py` writes two annotation polygons and one region
 into a project (test data only) so that overlays can be checked. Reasoning: the fixture has
 none, and inventing annotations inside the release asset is not mine to do.
+
+## D18. The local-folder mode is tested through the origin-private file system
+
+Decision: `scripts/smoke-local.mjs` copies a fixture sample into the browser's
+origin-private file system and calls `openDirectory` with that handle. Reasoning: a
+headless browser cannot grant a directory picker, but OPFS handles are real
+`FileSystemDirectoryHandle` objects, so the `DirectorySource`, the TissUUmaps workspace
+paths and `FileSystemHandleStore` run exactly as for a picked folder. The picker button
+itself remains a thing to check by eye.
+
+## D19. One colouring at a time, no stacked layers
+
+Decision: the viewer shows one colouring (gene or property) on one mask at a time.
+Alternatives: napari-style stacked layers per key. Reasoning: outlines of two colourings
+cannot be read; switching is one click and keeps the previous gene in the search box. The
+core cache fix makes two labels objects per mask possible should a comparison view be
+wanted later.

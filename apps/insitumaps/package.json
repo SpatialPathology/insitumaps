@@ -14,7 +14,8 @@
     "fixture:convert": "python3 scripts/convert_project.py test-data/fixture",
     "serve:data": "node scripts/serve-data.mjs",
     "dev:fixture": "node scripts/dev-fixture.mjs",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "smoke:local": "node scripts/smoke-local.mjs"
   },
   "dependencies": {
     "@tissuumaps/core": "workspace:^",
