@@ -3,6 +3,8 @@
  * (`X_csc.zarr`, AnnData zarr v2) and the label masks (`boundaries.zarr`,
  * Zarr v3).
  */
+import * as zarr from "zarrita";
+
 import type { LabelsDataSource, TableDataSource } from "@tissuumaps/core";
 
 import { type InSituSource, NotFoundError } from "../source";
@@ -15,6 +17,7 @@ import type {
   ObsColumn,
 } from "../types";
 import {
+  InSituSourceStore,
   type ZarrV2Tree,
   getMultiscale,
   getXYScale,
@@ -423,12 +426,42 @@ async function readMask(
       { signal },
     );
   }
+  const size = { width: shape[1]!, height: shape[0]! };
+  const level0Path = `/${multiscale.datasets[0]?.path ?? "0"}`;
+  let level0Array:
+    Promise<zarr.Array<zarr.DataType, zarr.Readable>> | undefined;
+  const readLabel = async (
+    x: number,
+    y: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<number> => {
+    const px = Math.floor(x / pixelSize);
+    const py = Math.floor(y / pixelSize);
+    if (px < 0 || py < 0 || px >= size.width || py >= size.height) {
+      return 0;
+    }
+    level0Array ??= zarr.open.v3(
+      zarr.root(new InSituSourceStore(source, maskPath)).resolve(level0Path),
+      { kind: "array" },
+    ) as Promise<zarr.Array<zarr.DataType, zarr.Readable>>;
+    level0Array.catch(() => (level0Array = undefined));
+    const array = await level0Array;
+    // one inner chunk of the sharded level; the shard index is read once per shard
+    const chunk = await zarr.get(
+      array,
+      [zarr.slice(py, py + 1), zarr.slice(px, px + 1)],
+      { signal: options?.signal },
+    );
+    const value = (chunk.data as ArrayLike<number | bigint>)[0];
+    return Number(value ?? 0);
+  };
   return {
     kind,
     pixelSize,
-    size: { width: shape[1]!, height: shape[0]! },
+    size,
     levels: multiscale.datasets.length,
     dataSource,
+    readLabel,
     labelMapping,
   };
 }

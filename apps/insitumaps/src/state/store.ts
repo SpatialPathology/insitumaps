@@ -93,7 +93,7 @@ export type Inspection = {
 /** Fallback tile size for the transcript region when no index is loaded */
 const defaultTranscriptTileSize = 500;
 
-/** High percentile for the automatic upper range of expression values */
+/** High percentile for the automatic upper range of numeric colourings */
 const expressionPercentile = 0.995;
 
 export type AppState = {
@@ -782,8 +782,7 @@ export const useAppStore = create<AppState>()((set, get) => {
         },
       });
       try {
-        const { readMaskLabel } = await import("@/viewer/picking");
-        const label = await readMaskLabel(mask, x, y, { signal: abort.signal });
+        const label = await mask.readLabel(x, y, { signal: abort.signal });
         if (abort.signal.aborted) {
           return;
         }

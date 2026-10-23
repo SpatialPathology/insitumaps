@@ -25,6 +25,12 @@ for (let i = 0; i < args.length; i++) {
 const root = resolve(folder);
 
 const mimeTypes = {
+  ".js": "text/javascript",
+  ".mjs": "text/javascript",
+  ".css": "text/css",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
   ".json": "application/json",
   ".parquet": "application/octet-stream",
   ".bin": "application/octet-stream",
@@ -68,10 +74,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (info.isDirectory()) {
-    res.writeHead(404, headers);
-    res.end();
-    return;
+    // a static build: serve its index.html at the folder root
+    try {
+      const indexPath = join(path, "index.html");
+      info = await stat(indexPath);
+      return serveFile(req, res, headers, indexPath, info);
+    } catch {
+      res.writeHead(404, headers);
+      res.end();
+      return;
+    }
   }
+  return serveFile(req, res, headers, path, info);
+});
+
+function serveFile(req, res, headers, path, info) {
   const size = info.size;
   const type = mimeTypes[extname(path)] ?? "application/octet-stream";
   const range = req.headers.range;
@@ -107,7 +124,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   createReadStream(path, { start, end }).pipe(res);
-});
+}
 
 server.listen(port, () => {
   console.log(

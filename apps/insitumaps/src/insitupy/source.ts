@@ -199,7 +199,8 @@ export class URLSource implements InSituSource {
     return response.ok;
   }
 
-  list(): Promise<null> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  list(_relativePath: string): Promise<null> {
     return Promise.resolve(null);
   }
 

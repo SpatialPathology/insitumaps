@@ -11,12 +11,10 @@ function makeBase(): TableData {
     getNames: () => ["a", "b", "c"],
     suggestColumnQueries: () => Promise.resolve([]),
     resolveColumnQuery: (q) => Promise.resolve(q),
-    loadValues: <T>(column: string) =>
+    loadValues: ((column: string) =>
       Promise.resolve(
-        (column === "num"
-          ? Float32Array.from([1.5, 2.5, 3.5])
-          : ["x", "y", "z"]) as never as T extends number ? Float32Array : T[],
-      ) as never,
+        column === "num" ? Float32Array.from([1.5, 2.5, 3.5]) : ["x", "y", "z"],
+      )) as TableData["loadValues"],
     close: () => {},
   };
 }
@@ -26,7 +24,7 @@ describe("RemappedTableData", () => {
     // labels 1 and 2 belong to row 2 and row 0; label 3 has no row
     const labelToRow = Int32Array.from([-1, 2, 0, -1]);
     const table = RemappedTableData.fromLabelToRow(makeBase(), labelToRow);
-    expect(Array.from(table.getIds())).toEqual([1, 2]);
+    expect([...table.getIds()]).toEqual([1, 2]);
     expect(table.getSize()).toBe(2);
     expect(table.getIds()).toBe(table.getIds());
     expect(table.getNames()).toEqual(["c", "a"]);

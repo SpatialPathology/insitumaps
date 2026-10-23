@@ -45,8 +45,9 @@ single small JSON. The plain Parquet layout stays supported through a slow fallb
 
 ## D6. Picking by reading the mask from zarr, not from the renderer
 
-Decision: on click (and on hover after a short delay) the app converts the cursor to mask pixels
-and reads the containing 512 x 512 chunk via zarrita (one range request; chunks are cached).
+Decision: on click the app converts the cursor to mask pixels and reads the containing
+512 x 512 chunk via zarrita (one range request plus the shard index, through the data-access
+layer's `MaskEntry.readLabel`, so it works for URL and directory sources alike).
 Alternatives: patch OpenSeadragon/TissUUmaps to expose tile data under the cursor. Reasoning:
 independent of renderer internals, works for both masks, small code.
 

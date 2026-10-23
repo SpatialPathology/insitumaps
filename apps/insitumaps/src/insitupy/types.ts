@@ -119,6 +119,15 @@ export type MaskEntry = {
   /** Data source for the viewer */
   dataSource: LabelsDataSource;
   /**
+   * Reads the raster label at a position in µm (0 for background or outside
+   * the mask), straight from the store; used to inspect a cell
+   */
+  readLabel(
+    x: number,
+    y: number,
+    options?: { signal?: AbortSignal },
+  ): Promise<number>;
+  /**
    * How raster labels relate to table rows:
    * - `direct`: label value == `obs/_label_id`
    * - `mapped`: label value - offset indexes `labelToRow`

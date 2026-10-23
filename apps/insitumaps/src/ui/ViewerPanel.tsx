@@ -20,7 +20,13 @@ const osOptions = {
     navigatorSizeRatio: 0.15,
   },
 };
-const glOptions = projectDefaults.glOptions;
+const glOptions = {
+  ...projectDefaults.glOptions,
+  shapesRenderOptions: {
+    ...projectDefaults.glOptions.shapesRenderOptions,
+    strokeWidth: 2,
+  },
+};
 
 export function ViewerPanel() {
   const model = useAppStore((s) => s.model);
