@@ -33,6 +33,11 @@ import {
   zarrTableDataSourceType,
 } from "@tissuumaps/storage";
 
+import {
+  GrayscaleImageDataProvider,
+  grayscaleImageDataSourceType,
+} from "./grayscaleImage";
+
 /** Data source type of tables that `loaders` build in memory */
 export const virtualTableDataSourceType = "insitumaps-virtual-table";
 
@@ -82,6 +87,10 @@ export class ViewerDataLoaders {
     this._imageProviders.set(
       omeZarrImageDataSourceType,
       new OMEZarrImageDataProvider(),
+    );
+    this._imageProviders.set(
+      grayscaleImageDataSourceType,
+      new GrayscaleImageDataProvider(),
     );
     this._labelsProviders.set(
       omeZarrLabelsDataSourceType,

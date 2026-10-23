@@ -300,12 +300,32 @@ async function readImages(
             size = { width: shape[xi]!, height: shape[yi]! };
           }
         }
+        let window: ImageEntry["window"];
+        const omero = (attrs.ome as { omero?: unknown } | undefined)?.omero;
+        const channel0 = (
+          omero as
+            | { channels?: { window?: { start?: number; end?: number } }[] }
+            | undefined
+        )?.channels?.[0];
+        if (
+          typeof channel0?.window?.start === "number" &&
+          typeof channel0.window.end === "number"
+        ) {
+          window = [channel0.window.start, channel0.window.end];
+        }
+        let dtypeMax: number | undefined;
         try {
           const level0 = await readZarrV3Metadata(
             source,
             `${cleanPath}/${multiscale.datasets[0]?.path ?? "0"}`,
             { signal },
           );
+          const dtype =
+            typeof level0.data_type === "string" ? level0.data_type : "";
+          const bits = /^uint(8|16|32)$/.exec(dtype)?.[1];
+          if (bits !== undefined) {
+            dtypeMax = 2 ** Number(bits) - 1;
+          }
           if (!isSharded(level0)) {
             const chunk = level0.chunk_grid?.configuration.chunk_shape;
             const tile = chunk?.at(-1) ?? 0;
@@ -324,7 +344,15 @@ async function readImages(
           type: "ome-zarr",
           source: source.resolve(cleanPath),
         };
-        const entry: ImageEntry = { name, pixelSize, rgb, size, dataSource };
+        const entry: ImageEntry = {
+          name,
+          pixelSize,
+          rgb,
+          size,
+          window,
+          dtypeMax,
+          dataSource,
+        };
         return entry;
       } catch (error) {
         signal?.throwIfAborted();

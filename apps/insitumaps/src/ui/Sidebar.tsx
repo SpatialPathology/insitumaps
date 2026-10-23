@@ -9,8 +9,10 @@ import { useState } from "react";
 
 import { continuousColorPalettes } from "@tissuumaps/core";
 
+import type { ImageEntry } from "@/insitupy";
 import { formatNumber } from "@/lib/utils";
 import { getObsColumn, useAppStore } from "@/state/store";
+import type { ImageSettings } from "@/viewer/selection";
 
 import { GeneSearch } from "./GeneSearch";
 import { CategoricalLegend, NumericLegend } from "./Legend";
@@ -568,11 +570,73 @@ function ImagesSection() {
                   className="mt-1"
                 />
               )}
+              {settings.visible && !image.rgb && (
+                <GrayscaleControls image={image} settings={settings} />
+              )}
             </li>
           );
         })}
       </ul>
     </Section>
+  );
+}
+
+function GrayscaleControls({
+  image,
+  settings,
+}: {
+  image: ImageEntry;
+  settings: ImageSettings;
+}) {
+  const setImage = useAppStore((s) => s.setImage);
+  const max =
+    image.dtypeMax ??
+    (image.window !== undefined ? image.window[1] * 4 : 65535);
+  const [black, white] = settings.contrast ?? image.window ?? [0, max];
+  return (
+    <div className="mt-1 space-y-1 pl-1">
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          aria-label={`Colour of ${image.name}`}
+          value={settings.color ?? "#ffffff"}
+          onChange={(e) => setImage(image.name, { color: e.target.value })}
+          className="size-6 cursor-pointer rounded border border-zinc-300 bg-transparent p-0"
+        />
+        <span className="text-xs text-zinc-500">
+          Levels {formatNumber(black)} to {formatNumber(white)}
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            setImage(image.name, { contrast: undefined, color: undefined })
+          }
+          className="ml-auto text-xs text-zinc-500 hover:text-zinc-800"
+        >
+          Reset
+        </button>
+      </div>
+      <Slider
+        ariaLabel={`${image.name} black level`}
+        min={0}
+        max={max}
+        step={Math.max(1, Math.round(max / 1000))}
+        value={black}
+        onChange={(v) =>
+          setImage(image.name, { contrast: [Math.min(v, white - 1), white] })
+        }
+      />
+      <Slider
+        ariaLabel={`${image.name} white level`}
+        min={1}
+        max={max}
+        step={Math.max(1, Math.round(max / 1000))}
+        value={white}
+        onChange={(v) =>
+          setImage(image.name, { contrast: [black, Math.max(v, black + 1)] })
+        }
+      />
+    </div>
   );
 }
 

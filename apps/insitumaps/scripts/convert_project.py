@@ -100,7 +100,8 @@ def add_layers_to_viewer_table(layer_dir: Path, force: bool) -> list[str]:
         if "layers" not in h5:
             return []
         layer_names = list(h5["layers"].keys())
-        num_rows = int(h5["obs"][h5["obs"].attrs["_index"]].shape[0])
+        # the index may be a dataset or a string group, depending on the anndata version
+        num_rows = len(read_elem(h5["obs"]))
     if not layer_names:
         return []
     with warnings.catch_warnings():
@@ -108,7 +109,7 @@ def add_layers_to_viewer_table(layer_dir: Path, force: bool) -> list[str]:
         # opened without the consolidated metadata, which anndata refuses to edit;
         # it is consolidated again below
         group = zarr.open_group(str(store_path), mode="r+", zarr_format=2, use_consolidated=False)
-    viewer_rows = int(group["obs"][group["obs"].attrs["_index"]].shape[0])
+    viewer_rows = len(read_elem(group["obs"]))
     if viewer_rows != num_rows:
         log(f"  skip layers: table.h5ad has {num_rows} cells, the viewer table {viewer_rows}")
         return []

@@ -37,7 +37,8 @@ Copy the address bar at any time to share exactly what you see.
 4. **Outlines**: draw the values on the _cell boundaries_ or the _nucleus boundaries_
    (nuclei show the value of their cell), as thin *Outline*s or _Filled_. The switch at the
    top hides them.
-5. **Images**: show or hide H&E and the fluorescence channels, with opacity.
+5. **Images**: show or hide H&E and the fluorescence channels, with opacity. A fluorescence
+   channel also gets a colour and black/white levels (_Reset_ returns to the stored window).
 6. **Transcripts**: add genes one by one (each gets its own colour). Only the genes you add
    and only the area you look at are loaded. When a gene has more points in view than the
    viewer draws, a `*` marks a subsample; zoom in to see every point.
@@ -75,9 +76,12 @@ Point the dev server at other data with `pnpm --filter insitumaps dev` and a `?s
 ### Build
 
 ```bash
+pnpm build:packages                     # the TissUUmaps packages the app resolves to in production
 pnpm --filter insitumaps build          # apps/insitumaps/dist, works from any static host
 pnpm --filter insitumaps preview        # serves dist locally
 ```
+
+(`pnpm build` at the root builds everything in order.)
 
 The build uses relative asset paths, so `dist/` can live at any path on any static host.
 Add `?source=<folder url>` to its URL, or host a redirect that fills it in.
@@ -86,6 +90,7 @@ Add `?source=<folder url>` to its URL, or host a redirect that fills it in.
 
 ```bash
 pnpm --filter insitumaps test           # vitest: data layer, transcript index, state
+pnpm --filter insitumaps test:converter # python unittest of the converter on synthetic data
 pnpm --filter insitumaps smoke          # headless Chromium end-to-end run on the fixture
 pnpm --filter insitumaps smoke:local    # the same through the local-folder code path
 pnpm typecheck && pnpm lint             # whole monorepo

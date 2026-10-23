@@ -14,7 +14,14 @@ export type ColorBy =
 export type MaskStyle = "outline" | "fill";
 
 /** Per-image display settings */
-export type ImageSettings = { visible: boolean; opacity: number };
+export type ImageSettings = {
+  visible: boolean;
+  opacity: number;
+  /** Contrast limits of a grayscale image (black and white level); undefined = automatic */
+  contrast?: [number, number];
+  /** Colour of a grayscale image as hex; undefined = white */
+  color?: string;
+};
 
 /** A selected transcript gene with its colour (hex) */
 export type TranscriptGene = { gene: string; color: string };

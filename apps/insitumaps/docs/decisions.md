@@ -118,11 +118,12 @@ without a signal and race each caller's signal against the shared promise. Reaso
 double click aborted the first caller's signal and poisoned the cached promise for the
 second ("signal is aborted without reason"), found by the smoke test.
 
-## D16. The app build builds the packages first
+## D16. The app build follows the `apps/tissuumaps` convention
 
-Decision: `pnpm --filter insitumaps build` runs the workspace `build:packages` first.
-Reasoning: in production mode the workspace packages resolve to their `dist`, as in
-`apps/tissuumaps`; a fresh clone would otherwise fail to build the app alone.
+Decision: `pnpm --filter insitumaps build` is `tsc -b && vite build`, like the TissUUmaps
+app; the root `pnpm build` (or `pnpm build:packages` first) builds the workspace packages
+the production bundle resolves to. Reasoning: the same rule as the existing app, and no
+double package build when CI runs `pnpm build` recursively.
 
 ## D17. Demo annotations for the fixture are written by a script, not shipped
 
@@ -146,3 +147,23 @@ Alternatives: napari-style stacked layers per key. Reasoning: outlines of two co
 cannot be read; switching is one click and keeps the previous gene in the search box. The
 core cache fix makes two labels objects per mask possible should a comparison view be
 wanted later.
+
+## D20. Single-channel images are wrapped as one-channel multi-channel images
+
+Decision: the viewer loads grayscale OME-Zarr images through a wrapper provider
+(`viewer/grayscaleImage.ts`) that presents them as a one-channel multi-channel image, so the
+TissUUmaps renderer applies contrast limits and a colour through its data transfer (no
+re-download when they change). Alternatives: (a) change `OMEZarrImageDataProvider` in the
+fork to do the same (changes `apps/tissuumaps` behaviour for every single-channel image);
+(b) re-open the tile source with a new omero `range` per change (re-downloads tiles).
+Reasoning: (a) is a behaviour change outside InSituMaps; (b) is slow. Side effect: the
+renderer draws an opaque black backdrop under additive channels, so a fluorescence image
+over H&E darkens it by its opacity, which reads as a normal overlay.
+
+## D21. Sample ids are read from every `.ispy` after the experiment opens
+
+Decision: the sample table shows `sample_id` and `slide_id` read from each project's
+`.ispy` (one small request per sample, six at a time, in the background). Alternatives:
+folder names only, or waiting for InSituPy to write them into the metadata table
+(insitupy-changes.md, item 6). Reasoning: 100 small requests are cheap and the names are
+what users look for; the request to InSituPy stays, as it removes the requests.

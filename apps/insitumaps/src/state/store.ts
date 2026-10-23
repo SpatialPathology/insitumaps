@@ -125,6 +125,8 @@ export type AppState = {
   sampleBrowserOpen: boolean;
   /** Candidate gene names for the transcript search */
   transcriptGenes: string[];
+  /** Bumped when the sample ids of the experiment have been read */
+  sampleInfoVersion: number;
 
   openUrl: (url: string) => Promise<void>;
   openDirectory: (handle: FileSystemDirectoryHandle) => Promise<void>;
@@ -526,6 +528,14 @@ export const useAppStore = create<AppState>()((set, get) => {
         await showProject(opened.project, null);
       } else {
         set({ experiment: opened.experiment, issues: collectIssues() });
+        opened.experiment
+          .loadSampleInfo({ signal: abort.signal })
+          .then(() => {
+            if (!abort.signal.aborted) {
+              set((s) => ({ sampleInfoVersion: s.sampleInfoVersion + 1 }));
+            }
+          })
+          .catch(() => {});
         const sample = pendingUrlState?.sample;
         const index =
           sample !== undefined &&
@@ -598,6 +608,7 @@ export const useAppStore = create<AppState>()((set, get) => {
     notices: [],
     sampleBrowserOpen: false,
     transcriptGenes: [],
+    sampleInfoVersion: 0,
 
     openUrl: (url) => open(new URLSource(url)),
     openDirectory: (handle) => open(new DirectorySource(handle)),

@@ -140,10 +140,10 @@ The viewer would prefer the explicit column.
 
 ## 5. Omero contrast windows for fluorescence images (nice to have)
 
-**Problem.** Single-channel images are rendered with the omero window as written
-(`nuclei`: 0 to 1534 on the fixture). The viewer cannot change the contrast of a
-single-channel OME-Zarr through TissUUmaps' channel settings, so the window should be a good
-default (e.g. the 1st to 99.5th percentile of a downsampled level).
+**Problem.** Single-channel images start with the omero window as written (`nuclei`: 0 to
+1534 on the fixture). The viewer lets the user change black and white levels, but the
+stored window is what everybody sees first, so it should be a good default (e.g. the 1st
+to 99.5th percentile of a downsampled level).
 
 **Writer affected.** `ImageData.save` / `write_zarr` (`insitupy/io/...`, the `omero`
 section).

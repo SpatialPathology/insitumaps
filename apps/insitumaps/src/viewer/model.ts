@@ -32,6 +32,7 @@ import {
   transcriptRegionKey,
 } from "@/transcripts/provider";
 
+import { grayscaleImageDataSourceType } from "./grayscaleImage";
 import { virtualTableDataSourceType } from "./loaders";
 import type { Selection } from "./selection";
 
@@ -135,10 +136,26 @@ export function buildViewerModel(options: {
         id: `image:${image.name}`,
         name: image.name,
         layer: sampleLayerId,
-        dataSource: image.dataSource,
+        // grayscale images go through the one-channel wrapper, which gives
+        // them contrast limits and a colour
+        dataSource: image.rgb
+          ? image.dataSource
+          : { ...image.dataSource, type: grayscaleImageDataSourceType },
         visibility: settings?.visible ?? true,
         opacity: settings?.opacity ?? 1,
         transform: { ...identityTransform, scale: image.pixelSize },
+        ...(!image.rgb && {
+          channels: [
+            {
+              name: image.name,
+              contrastLimits: settings?.contrast,
+              color:
+                settings?.color !== undefined
+                  ? ColorUtils.fromHex(settings.color)
+                  : undefined,
+            },
+          ],
+        }),
       }),
     );
   }

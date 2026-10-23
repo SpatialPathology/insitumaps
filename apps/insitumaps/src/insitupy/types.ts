@@ -33,6 +33,9 @@ export type SampleEntry = {
   path: string;
   /** Display name: sample_id, or the folder name */
   name: string;
+  /** From the project's `.ispy`, once read (see {@link InSituExperiment.loadSampleInfo}) */
+  sampleId?: string;
+  slideId?: string;
   /** The row of the metadata table, by column name */
   metadata: Record<string, string | number | boolean | null>;
 };
@@ -56,6 +59,12 @@ export interface InSituExperiment {
     index: number,
     options?: { signal?: AbortSignal },
   ): Promise<InSituProject>;
+  /**
+   * Reads the sample and slide ids of every sample (one small request each)
+   * into {@link SampleEntry.sampleId} and {@link SampleEntry.slideId}; samples
+   * that cannot be read are left as they are
+   */
+  loadSampleInfo(options?: { signal?: AbortSignal }): Promise<void>;
 }
 
 /** A raster image of a project (H&E, DAPI, ...) */
@@ -68,6 +77,10 @@ export type ImageEntry = {
   rgb: boolean;
   /** Size in pixels of the full-resolution level, if known */
   size?: { width: number; height: number };
+  /** Contrast window (start, end) written in the omero metadata, grayscale images */
+  window?: [number, number];
+  /** Largest value the pixel type can hold (255, 65535), if integer */
+  dtypeMax?: number;
   /** Data source of the image for the viewer */
   dataSource: ImageDataSource;
 };

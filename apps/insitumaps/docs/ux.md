@@ -44,6 +44,10 @@ What the user sees and why, and where InSituMaps deviates from the InSituPy napa
 - The palette list is the continuous palettes of TissUUmaps; categories use a 20-colour
   distinct palette, or the experiment's `colors.json` if it names the column.
 - Point size of transcripts is in µm (scales with zoom, like napari), default 2 µm.
+- Fluorescence images (DAPI, other channels) have a colour and black/white level sliders,
+  starting from the window InSituPy stored; H&E has opacity only.
+- The sample table shows the sample and slide ids from every `.ispy` (read in the
+  background after the experiment opens), not only the metadata columns.
 - The sample dialog opens first for an experiment, because the first decision is which
   sample to look at; a link with `sample=` skips it.
 - Transcripts of a gene with more points in view than the limit (2 million) are subsampled

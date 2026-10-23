@@ -25,6 +25,7 @@ export function SampleBrowser() {
   const project = useAppStore((s) => s.project);
   const setOpen = useAppStore((s) => s.setSampleBrowserOpen);
   const selectSample = useAppStore((s) => s.selectSample);
+  const sampleInfoVersion = useAppStore((s) => s.sampleInfoVersion);
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<SortState>(null);
 
@@ -61,7 +62,9 @@ export function SampleBrowser() {
       });
     }
     return filtered;
-  }, [experiment, filter, sort]);
+    // sampleInfoVersion: the sample ids arrive after the experiment opened
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [experiment, filter, sort, sampleInfoVersion]);
 
   if (experiment === null || !open) {
     return null;

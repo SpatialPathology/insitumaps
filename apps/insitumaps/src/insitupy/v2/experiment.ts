@@ -13,7 +13,7 @@ import type {
   MetadataTable,
   SampleEntry,
 } from "../types";
-import { readProjectV2 } from "./project";
+import { type IspyMetadata, readProjectV2 } from "./project";
 
 type MetadataValue = string | number | boolean | null;
 
@@ -30,6 +30,7 @@ export class InSituExperimentV2 implements InSituExperiment {
   readonly colors: Record<string, Record<string, string>>;
   readonly issues: DataIssue[];
   private readonly _projects = new Map<number, Promise<InSituProject>>();
+  private _sampleInfo: Promise<void> | undefined;
 
   constructor(options: {
     source: InSituSource;
@@ -83,6 +84,34 @@ export class InSituExperimentV2 implements InSituExperiment {
       this._projects.set(index, promise);
     }
     return raceSignal(promise, options?.signal);
+  }
+
+  loadSampleInfo(options?: { signal?: AbortSignal }): Promise<void> {
+    this._sampleInfo ??= (async () => {
+      const pending = this.samples.filter((s) => s.sampleId === undefined);
+      const concurrency = 6;
+      let next = 0;
+      const worker = async () => {
+        while (next < pending.length) {
+          const sample = pending[next++]!;
+          try {
+            const ispy = await this.source
+              .child(sample.path)
+              .readJSON<IspyMetadata>(".ispy");
+            sample.sampleId = ispy.sample_id ?? "";
+            sample.slideId = ispy.slide_id ?? "";
+            if (sample.name === sample.path && sample.sampleId !== "") {
+              sample.name = sample.sampleId;
+            }
+          } catch {
+            // left for openSample to report
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: concurrency }, worker));
+    })();
+    this._sampleInfo.catch(() => (this._sampleInfo = undefined));
+    return raceSignal(this._sampleInfo, options?.signal);
   }
 }
 

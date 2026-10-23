@@ -19,8 +19,9 @@ skeleton, two separable core changes, the app, converter and tests, and fixes.
 - **Cell properties**: numeric columns with a legend; categorical columns with colours,
   counts and per-category toggles (experiment `colors.json` is honoured when it names the
   column).
-- **Images**: H&E (RGB) and fluorescence channels with visibility and opacity; defaults H&E
-  on, DAPI off.
+- **Images**: H&E (RGB) and fluorescence channels with visibility and opacity; fluorescence
+  channels also get a colour and black/white levels (starting from the stored omero window);
+  defaults H&E on, DAPI off.
 - **Transcripts**: per selected gene, only the tiles in view, through a converter-written
   index (`transcripts/insitumaps/`), with per-tile fair subsampling above 2 million points
   in view and a `*` marker; Parquet fallback without the index (up to 20 million rows, with a
@@ -38,8 +39,10 @@ skeleton, two separable core changes, the app, converter and tests, and fixes.
 
 ## How it was verified
 
-- `pnpm typecheck`, `pnpm lint`, `pnpm test` pass for the whole monorepo (the TissUUmaps
-  packages' tests included, plus 29 new tests in `@tissuumaps/render` and 25 in the app).
+- `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm fmt:check` and `pnpm changeset status`
+  pass for the whole monorepo (the TissUUmaps packages' tests included, plus 29 new tests in
+  `@tissuumaps/render` and 25 in the app); `pnpm --filter insitumaps test:converter` runs the
+  converter on a synthetic project (5 tests).
 - `pnpm --filter tissuumaps build` still builds, `apps/tissuumaps` is untouched.
 - `scripts/smoke-test.mjs`: headless Chromium (SwiftShader WebGL 2) walks the workflow on
   the fixture experiment and checks the store state and the rendered canvas after every step
@@ -68,8 +71,8 @@ skeleton, two separable core changes, the app, converter and tests, and fixes.
 
 - Outlines are detected per tile: a cell boundary that coincides with a tile edge is not
   drawn along that edge (a few pixels on seams of 512 px tiles).
-- Single-channel images (DAPI) are rendered with the omero window written by InSituPy; the
-  viewer offers opacity but no contrast slider for them (see insitupy-changes.md, item 5).
+- A fluorescence image drawn over H&E darkens it by its opacity (the TissUUmaps renderer
+  puts a black backdrop under additively blended channels); use the opacity slider.
 - Transcript genes with more than 2 million points in view are subsampled evenly; the number
   shown is marked with `*`.
 - The Parquet fallback for transcripts keeps all coordinates in memory and refuses files
