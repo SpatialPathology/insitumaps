@@ -156,6 +156,8 @@ export type AppState = {
 };
 
 let noticeCounter = 0;
+/** The URL state captured when a source is opened, consumed by the first project shown */
+let pendingUrlState: ReturnType<typeof readStateFromUrl> | null = null;
 let openAbort: AbortController | null = null;
 let sampleAbort: AbortController | null = null;
 let layerAbort: AbortController | null = null;
@@ -413,7 +415,8 @@ export const useAppStore = create<AppState>()((set, get) => {
         }));
       }),
     );
-    const urlState = readStateFromUrl();
+    const urlState = pendingUrlState ?? {};
+    pendingUrlState = null;
     const previous = state.selection;
     const images: Record<string, ImageSettings> = {};
     const hasRgb = project.images.some((i) => i.rgb);
@@ -495,6 +498,8 @@ export const useAppStore = create<AppState>()((set, get) => {
     const abort = new AbortController();
     openAbort = abort;
     get().loaders?.close();
+    // captured before the URL is rewritten below
+    pendingUrlState = readStateFromUrl();
     set({
       source,
       opened: null,
@@ -521,11 +526,11 @@ export const useAppStore = create<AppState>()((set, get) => {
         await showProject(opened.project, null);
       } else {
         set({ experiment: opened.experiment, issues: collectIssues() });
-        const urlState = readStateFromUrl();
+        const sample = pendingUrlState?.sample;
         const index =
-          urlState.sample !== undefined &&
-          opened.experiment.samples.some((s) => s.index === urlState.sample)
-            ? urlState.sample
+          sample !== undefined &&
+          opened.experiment.samples.some((s) => s.index === sample)
+            ? sample
             : null;
         if (index !== null) {
           await get().selectSample(index);

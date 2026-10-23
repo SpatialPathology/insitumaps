@@ -176,7 +176,9 @@ export class ZarrV2Tree {
   /** Whether a node exists (array or group) */
   has(path: string): boolean {
     return (
-      `${path}/.zarray` in this.metadata || `${path}/.zgroup` in this.metadata
+      `${path}/.zarray` in this.metadata ||
+      `${path}/.zgroup` in this.metadata ||
+      `${path}/.zattrs` in this.metadata
     );
   }
 

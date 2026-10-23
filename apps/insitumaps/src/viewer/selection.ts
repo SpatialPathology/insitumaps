@@ -78,7 +78,7 @@ export function createDefaultSelection(): Selection {
     range: null,
     hiddenCategories: [],
     images: {},
-    transcripts: { genes: [], pointSize: 1, visible: true },
+    transcripts: { genes: [], pointSize: 2, visible: true },
     overlays: {},
   };
 }

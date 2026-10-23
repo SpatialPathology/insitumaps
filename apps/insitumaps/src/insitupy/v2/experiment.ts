@@ -57,7 +57,8 @@ export class InSituExperimentV2 implements InSituExperiment {
     }
     let promise = this._projects.get(index);
     if (promise === undefined) {
-      promise = readProjectV2(this.source.child(sample.path), options).then(
+      // read without the caller's signal: the promise is shared between callers
+      promise = readProjectV2(this.source.child(sample.path)).then(
         (project) => {
           const uid = sample.metadata["uid"];
           if (
@@ -81,8 +82,24 @@ export class InSituExperimentV2 implements InSituExperiment {
       promise.catch(() => this._projects.delete(index));
       this._projects.set(index, promise);
     }
+    return raceSignal(promise, options?.signal);
+  }
+}
+
+function raceSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (signal === undefined) {
     return promise;
   }
+  if (signal.aborted) {
+    return Promise.reject(signal.reason as Error);
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason as Error);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", onAbort);
+    });
+  });
 }
 
 /**

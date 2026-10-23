@@ -57,3 +57,74 @@ tile in the labels renderer's `transferValues` (a pixel is drawn when a 4-neighb
 label). Alternatives: vector boundaries (not stored by InSituPy), shader-based edge detection
 (OSD canvas drawer has no shader stage). Known limitation: a boundary that lies exactly on a tile
 seam is not drawn on that seam; documented.
+
+## D8. Transcript index: per-gene tile tables in a binary file, not in `index.json`
+
+Decision: `index.json` lists genes with offsets only; the per-gene tile tables live in
+`tiles.bin` and are fetched per gene. Alternatives: tile tables inline in the JSON.
+Reasoning: 5000 genes x 20k tiles of a large slide would make the JSON hundreds of
+megabytes; the binary table costs one small range request per selected gene.
+
+## D9. Points are shuffled within a tile; subsampling takes a prefix of every tile
+
+Decision: when a gene has more points in view than `maxPointsPerGene` (2 million), the
+reader loads the same fraction of every visible tile and marks the result as subsampled.
+Alternatives: load everything (freezes the browser on dense genes at low zoom), load only
+some tiles (spatially biased). Reasoning: the shuffle makes any prefix a fair sample, so
+the overview stays honest and zooming in shows all points.
+
+## D10. Native HTML controls styled with Tailwind, no component library
+
+Decision: selects, sliders, switches and inputs are native elements (or two-line React
+wrappers). Alternatives: copy the shadcn/Base UI components of `apps/tissuumaps`.
+Reasoning: fewer dependencies and failure modes, keyboard and touch work out of the box,
+and the viewer's UI is small. Tooltips are `title` attributes.
+
+## D11. Automatic colour range of genes ends at the 99.5th percentile
+
+Decision: numeric legends start at the minimum; for genes the upper end is the 99.5th
+percentile of the cells, for obs columns the maximum. Alternatives: min-max (napari).
+Reasoning: expression columns have long tails; a handful of cells otherwise push every
+other cell into the darkest colours. The full data range is shown in the tooltip of _Auto_
+and both ends are editable.
+
+## D12. The sample table opens first for an experiment
+
+Decision: opening an experiment URL without `sample=` shows the sample table as a dialog;
+the first sample is not opened automatically. Alternatives: open sample 0. Reasoning: the
+first decision of the user is which sample to look at, and loading a sample nobody asked
+for costs bandwidth. A link with `sample=` skips the dialog.
+
+## D13. Click to inspect, not hover
+
+Decision: a click on a cell shows its values; hover does nothing. Alternatives: hover with
+a delay. Reasoning: a hover read is a range request per mouse movement; a click is a
+deliberate question and also works on touch screens. Picking reads the mask directly from
+zarr (D6).
+
+## D14. Headless browser test through the DevTools protocol without Playwright
+
+Decision: `scripts/browser.mjs` drives the bundled Chromium over CDP with Node's WebSocket;
+`scripts/smoke-test.mjs` walks the workflow and checks the store (exposed as
+`window.insitumaps`) and the canvas. Alternatives: add `playwright` as a dependency.
+Reasoning: the sandbox cannot install new packages consistently with the lockfile (D2), and
+the driver is 200 lines. Playwright can replace it later without touching the test logic.
+
+## D15. Shared reads are cached without the caller's abort signal
+
+Decision: `InSituExperiment.openSample` and `InSituProject.openCellLayer` run the read once
+without a signal and race each caller's signal against the shared promise. Reasoning: a
+double click aborted the first caller's signal and poisoned the cached promise for the
+second ("signal is aborted without reason"), found by the smoke test.
+
+## D16. The app build builds the packages first
+
+Decision: `pnpm --filter insitumaps build` runs the workspace `build:packages` first.
+Reasoning: in production mode the workspace packages resolve to their `dist`, as in
+`apps/tissuumaps`; a fresh clone would otherwise fail to build the app alone.
+
+## D17. Demo annotations for the fixture are written by a script, not shipped
+
+Decision: `scripts/add_demo_annotations.py` writes two annotation polygons and one region
+into a project (test data only) so that overlays can be checked. Reasoning: the fixture has
+none, and inventing annotations inside the release asset is not mine to do.

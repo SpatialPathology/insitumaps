@@ -17,6 +17,10 @@ export default defineConfig(({ mode }) => ({
   appType: "mpa",
   server: {
     port: 5174,
+    // the workspace packages import their assets (palettes) from the repo root
+    fs: {
+      allow: [resolve(import.meta.dirname, "../..")],
+    },
   },
   build: {
     chunkSizeWarningLimit: 4096,

@@ -106,16 +106,25 @@ export class InSituProjectV2 implements InSituProject {
     }
     let promise = this._cellLayers.get(key);
     if (promise === undefined) {
-      promise = openCellLayerV2(
-        this.source,
-        `${this.cellsPath}/${key}`,
-        key,
-        options,
-      );
+      // read without the caller's signal: the promise is shared between callers
+      promise = openCellLayerV2(this.source, `${this.cellsPath}/${key}`, key);
       promise.catch(() => this._cellLayers.delete(key));
       this._cellLayers.set(key, promise);
     }
-    return promise;
+    const { signal } = options ?? {};
+    if (signal === undefined) {
+      return promise;
+    }
+    if (signal.aborted) {
+      return Promise.reject(signal.reason as Error);
+    }
+    return new Promise<CellLayer>((resolve, reject) => {
+      const onAbort = () => reject(signal.reason as Error);
+      signal.addEventListener("abort", onAbort, { once: true });
+      promise.then(resolve, reject).finally(() => {
+        signal.removeEventListener("abort", onAbort);
+      });
+    });
   }
 }
 

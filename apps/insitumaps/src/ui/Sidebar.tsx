@@ -65,11 +65,16 @@ function SampleSection() {
     >
       <Select
         value={sampleIndex !== null ? String(sampleIndex) : ""}
-        onChange={(v) => void selectSample(Number(v))}
-        options={experiment.samples.map((s) => ({
-          value: String(s.index),
-          label: s.name === s.path ? s.path : `${s.name} (${s.path})`,
-        }))}
+        onChange={(v) => v !== "" && void selectSample(Number(v))}
+        options={[
+          ...(sampleIndex === null
+            ? [{ value: "", label: "Choose a sample", disabled: true }]
+            : []),
+          ...experiment.samples.map((s) => ({
+            value: String(s.index),
+            label: s.name === s.path ? s.path : `${s.name} (${s.path})`,
+          })),
+        ]}
       />
     </Section>
   );

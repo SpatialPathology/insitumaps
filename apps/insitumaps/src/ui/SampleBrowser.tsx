@@ -162,7 +162,10 @@ export function SampleBrowser() {
                       {String(sample.metadata[column] ?? "")}
                     </td>
                   ))}
-                  <td className="px-3 py-1.5 text-right">
+                  <td
+                    className="px-3 py-1.5 text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Button
                       variant={
                         sample.index === sampleIndex ? "default" : "primary"

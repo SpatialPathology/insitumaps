@@ -99,17 +99,20 @@ The app's provider fetches, per selected gene, the byte ranges of the tiles inte
 app falls back to scanning the Parquet (slow, with a visible warning). See
 `insitupy-changes.md` for the InSituPy-side request.
 
-## 6. Order of work
+## 6. Order of work and status
 
 0. Recon (done)
-1. Plan and docs skeleton (this commit)
-2. Core fix: labels cache bug
-3. App scaffold, data-access layer, core workflow (sample, layer, source, gene, mask toggle, legend, range), scale bar, defaults
-4. Converter (layers, transcript index, duplicate layer for the fixture) and fixture scripts
-5. Outline rendering mode
-6. Obs colouring (categorical legend and toggles, numeric)
-7. Transcripts (selected genes, view limited)
-8. Experiment browser with metadata table
-9. Cell inspection
-10. Annotations and regions overlays
-11. Tests, smoke test, docs, final report
+1. Plan and docs skeleton (done)
+2. Core fix: labels cache bug (done, `fix(render): isolate tile caches per tiled image`)
+3. App scaffold, data-access layer, core workflow (sample, layer, source, gene, mask toggle, legend, range), scale bar, defaults (done)
+4. Converter (layers, transcript index, duplicate layer for the fixture) and fixture scripts (done)
+5. Outline rendering mode (done, `feat(labels): add an outline render mode`)
+6. Obs colouring (categorical legend and toggles, numeric) (done)
+7. Transcripts (selected genes, view limited) (done)
+8. Experiment browser with metadata table (done)
+9. Cell inspection (done, click)
+10. Annotations and regions overlays (done; checked with demo GeoJSON)
+11. Tests, smoke test, docs, final report (in progress)
+
+Open: directory (local folder) mode is implemented but only checked by code reading, as a
+headless browser cannot grant a directory picker; tile abort/timeout in the core is untouched.

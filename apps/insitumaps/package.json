@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b tsconfig.src.json && vite build",
+    "build": "pnpm -w build:packages && tsc -b tsconfig.src.json && vite build",
     "preview": "vite preview",
     "clean": "rm -rf build dist node_modules",
     "test": "vitest run --passWithNoTests",
