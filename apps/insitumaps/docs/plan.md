@@ -1,0 +1,115 @@
+# InSituMaps plan
+
+Working title **InSituMaps**: a browser-only viewer for InSituPy projects and experiments, built on
+TissUUmaps 4 (fork of upstream `main` at `4c665b6`, one commit after `tissuumaps@4.0.0-beta.3`).
+The app lives in `apps/insitumaps`. This document is the living plan; `decisions.md` records
+every decision taken alone, `ux.md` the UX reasoning, `insitupy-changes.md` the change requests
+for InSituPy.
+
+## 1. Gap analysis (section 1 of the brief vs. stock TissUUmaps 4)
+
+| Need                                                              | Stock TissUUmaps 4                                                 | Gap                                                              | Approach                                                                                                                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open an InSituPy project/experiment from its layout               | Opens a hand-built `project.tm4`                                   | No reader for `.ispy`, `.multicelldata`, `.celldata`, zarr attrs | Data-access layer in the app reads the layout and builds the TissUUmaps model in memory                                                                                 |
+| Sample / cell layer / expression source / gene / outline workflow | Element-type panels (images, labels, points, shapes, tables)       | UI organised by SpatialData-like element types                   | Own React UI around the InSituPy model; TissUUmaps panels are not used                                                                                                  |
+| Expression from `layers/<name>`                                   | Zarr AnnData reader supports `layers/<name>` as CSC matrix columns | `X_csc.zarr` only holds `.X`                                     | Converter writes layers as CSC into `X_csc.zarr`; change request for InSituPy                                                                                           |
+| Values on cell or nucleus outlines                                | Labels are filled masks, one colouring per source works            | No outline mode; cache bug with two labels objects per source    | Core fix for the cache bug (per-tiled-image transfers and caches); outline render mode in the labels renderer; nucleus labels mapped to cells via `nucleus_to_cell_map` |
+| Colour legend, adjustable range                                   | Project-level colour configs only                                  | No legend widget                                                 | Legend computed in the app from column range/categories; range editable                                                                                                 |
+| Categorical obs with per-category toggles                         | `groupBy` colour maps and visibility maps exist                    | No UI                                                            | App builds colour/visibility maps per category                                                                                                                          |
+| Transcripts on 81M rows                                           | Loads the whole Parquet                                            | No per-view or per-gene loading                                  | Spatially binned, gene-sorted index written by the converter; a points provider in the app loads only selected genes and tiles in view                                  |
+| Experiment browser                                                | Per sample only                                                    | No metadata table                                                | App reads `metadata.parquet`/`.csv`, shows a sortable, filterable table                                                                                                 |
+| Cell inspection                                                   | No picking                                                         | -                                                                | App reads the mask chunk under the cursor directly from zarr and shows the cell's values                                                                                |
+| Clear errors                                                      | `console.warn` fallbacks                                           | Silent                                                           | App validates the layout and shows messages in the UI                                                                                                                   |
+| Scale bar                                                         | None                                                               | -                                                                | App-side scale bar from the OSD viewport (world units are µm)                                                                                                           |
+
+## 2. Limits of TissUUmaps 4 (section 4 of the brief)
+
+| Limit                                          | Verdict                                     | Plan                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Labels colour cache bug                        | Fixable in the fork, small                  | `OpenSeadragonContext` keys data transfers by `TileSource`; `OMEZarrLabelsData.getTileSource()` returns one shared instance, so two labels objects collide, and OSD shares their tile cache (`getTileHashKey`). Fix: key transfers per `TiledImage` and give each tiled image its own cache namespace. Separable commit, offered upstream |
+| No label hover/picking                         | Avoidable by design                         | Picking is done in the app by reading the mask chunk at the cursor from zarr (one range request per click), independent of the renderer                                                                                                                                                                                                   |
+| Silent table fallbacks                         | Avoidable by design                         | The app checks the table/mask join itself (`_label_id` against mask labels) before building objects and reports problems in the UI                                                                                                                                                                                                        |
+| Transcripts loaded whole                       | Needs a new file layout plus a new provider | The Parquet writer keeps FOV order; row-group statistics cannot prune by gene. A converter writes a per-gene, spatially tiled binary index; the app's provider reads only the selected genes' tiles in view. The plain layout still works with a slow fallback (scan the Parquet per gene)                                                |
+| 4096 chunks time out, 512 tiles work           | Already solved by the sharded layout        | Nothing to do; a hint is shown when an image is not sharded                                                                                                                                                                                                                                                                               |
+| Chunk downloads not cancelled, no tile timeout | Upstream-only for now                       | Out of scope unless time remains; documented as known issue                                                                                                                                                                                                                                                                               |
+| SpatialData plugin is a stub                   | Not needed                                  | Untouched                                                                                                                                                                                                                                                                                                                                 |
+| Per-sample only                                | Solved in the app                           | Sample browser and sample switch in the app                                                                                                                                                                                                                                                                                               |
+
+## 3. Architecture
+
+```
+apps/insitumaps/src
+  insitupy/            InSituPy-shaped interface (types only, no file knowledge)
+  insitupy/v2/         Implementation for the on-disk layout of format v2 (.ispy, zarr, parquet)
+  viewer/              Maps the InSituPy model + user choices onto the TissUUmaps project model
+                       (layers, images, labels, points, shapes, tables, maps) and loads data
+  transcripts/         Transcript index reader and points provider (view and gene limited)
+  ui/                  React UI (workflow panel, sample browser, legend, scale bar, inspector)
+  state/               Zustand stores: source, selection, view state
+scripts/               fixture download/convert, data server with range requests, smoke test
+```
+
+The UI talks only to `insitupy/` types. `insitupy/v2` is one implementation; a SpatialData-backed
+implementation plugs in by implementing the same interface (see section 5).
+
+Rendering reuses `@tissuumaps/react`'s `Viewer` with a `ViewerAdapter` built by `viewer/`. The
+TissUUmaps model is an implementation detail; no TissUUmaps panel or `project.tm4` is used.
+
+World coordinates are µm: images and masks get a transform with `scale = pixel_size`; centroids,
+transcripts and geometries are µm already.
+
+## 4. Data-access interface (InSituPy-shaped)
+
+```ts
+// insitupy/types.ts (sketch; the code is the reference)
+interface InSituSource            // where a project or experiment lives: URL or directory handle
+interface InSituExperiment { samples: SampleEntry[]; metadata: MetadataTable; colors; openSample(i) }
+interface InSituProject {
+  id, sampleId, slideId, pixelSize, units: "µm"
+  images: ImageEntry[]               // name, kind rgb|grayscale, raster source descriptor
+  cellLayers: string[]; mainCellLayer: string
+  openCellLayer(key): Promise<CellLayer>
+  transcripts: TranscriptsEntry | null
+  annotations: GeometryEntry[]; regions: GeometryEntry[]
+}
+interface CellLayer {
+  key
+  table: CellTable                   // genes, expression sources, obs columns, per-cell reads
+  masks: { cells?: MaskEntry; nuclei?: MaskEntry }   // raster source + label mapping to cells
+}
+```
+
+Raster/table "source descriptors" are the TissUUmaps data-source objects (`{type: "ome-zarr",
+source}` etc.), so `viewer/` can hand them to the existing providers. A SpatialData
+implementation would return the same descriptors for `images/<name>`, `labels/<name>`,
+`tables/<name>` and `points/<name>` of a SpatialData zarr, plus the InSituPy semantics it stores
+(which table belongs to which labels, which layer is main) from the SpatialData attrs/`uns`.
+
+## 5. Transcript strategy
+
+Existing providers load the whole file into one points object; the Parquet layout cannot prune
+by gene. Decision: a converter writes `transcripts/insitumaps/` next to the Parquet:
+
+- `index.json`: genes (sorted), grid (tile size in µm, origin, number of tiles), per gene the
+  byte offset and per-tile point counts
+- `points.bin`: for every gene, its points sorted by tile, as interleaved float32 `x, y` (µm)
+
+The app's provider fetches, per selected gene, the byte ranges of the tiles intersecting the view
+(plus one tile of margin) and builds one TissUUmaps points object per gene. Without the index the
+app falls back to scanning the Parquet (slow, with a visible warning). See
+`insitupy-changes.md` for the InSituPy-side request.
+
+## 6. Order of work
+
+0. Recon (done)
+1. Plan and docs skeleton (this commit)
+2. Core fix: labels cache bug
+3. App scaffold, data-access layer, core workflow (sample, layer, source, gene, mask toggle, legend, range), scale bar, defaults
+4. Converter (layers, transcript index, duplicate layer for the fixture) and fixture scripts
+5. Outline rendering mode
+6. Obs colouring (categorical legend and toggles, numeric)
+7. Transcripts (selected genes, view limited)
+8. Experiment browser with metadata table
+9. Cell inspection
+10. Annotations and regions overlays
+11. Tests, smoke test, docs, final report
