@@ -43,6 +43,7 @@ export default defineConfig([
   },
   {
     files: [
+      "apps/insitumaps/**/*.{js,jsx,ts,tsx}",
       "apps/tissuumaps/**/*.{js,jsx,ts,tsx}",
       "packages/@tissuumaps-react/**/*.{js,jsx,ts,tsx}",
     ],
