@@ -1,8 +1,9 @@
 # InSituMaps: final report
 
 Branch `insitumaps/viewer` on `SpatialPathology/insitumaps` (mirrored to
-`claude/optimistic-ride-gjd8jb`), based on upstream `main` at `4c665b6`. Six commits: docs
-skeleton, two separable core changes, the app, converter and tests, and fixes.
+`claude/optimistic-ride-gjd8jb`), based on upstream `main` at `4c665b6`; draft pull request
+SpatialPathology/insitumaps#1. Commits: docs skeleton, two separable core changes, the app,
+converter and tests, fixes, and the fluorescence contrast and sample id additions.
 
 ## What works
 
